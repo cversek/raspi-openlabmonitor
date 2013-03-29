@@ -6,13 +6,13 @@ import RPi.GPIO as GPIO
 class CommSPI(object):
     """ Provides hardware of software (bit-banged) IO using SPI protocol
     """
-    def __init__(self):
+    def __init__(self, device = None):
         self.transfer = None
         #by default setup the hardware SPI
-        self.setup_hardware()
+        self.setup_hardware(device = device)
         
     def setup_hardware(self, device):
-        self._device  = devices
+        self._device  = device
         self.transfer = self._transfer_hardware
     
     def setup_software(self, clockpin, mosipin, misopin, cspin):
