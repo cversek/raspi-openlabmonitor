@@ -62,10 +62,10 @@ class MCP3008ADC(object):
         #do transmit/receive
         bytes_in = self._spi.transfer(bytes_out)
         #data is in 2nd and 3rd bytes (?,?,?,?,?,0,B9,B8), (B7,B6,B5,B4,B3,B2,B1,B0)
+        #print " ".join(map(bin,bytes_in))
         val  = (bytes_in[1] & 0b11) << 8
         val += bytes_in[2]
-        return val 
-        
+        return val
         
 ################################################################################
 # TEST CODE
@@ -74,24 +74,28 @@ if __name__ == "__main__":
     import RPi.GPIO as GPIO
     # change these as desired - they're the pins connected from the
     # SPI port on the ADC to the Cobbler
-    SPICLK = 18
+    SPICLK  = 18
     SPIMISO = 23
     SPIMOSI = 24
-    SPICS = 25
+    SPICS   = 25
     PINMODE = GPIO.BCM  #configure the pin order as Broadcom SoC channels
- 
+    
     adc = MCP3008ADC()
     adc.setup_software_spi(clockpin = SPICLK,
                            misopin  = SPIMISO,
                            mosipin  = SPIMOSI,
                            cspin    = SPICS,
                            pinmode  = PINMODE
-                          ) 
-                          
+                          )
+    
     #read SPI data from MCP3008 chip, 8 possible adc's (0 thru 7)
-    while True:
-        for i in range(adc.NUM_CHANNELS):
-            val = adc.read_single(i)
-            print "channel %d: %d" % (i,val)
-        #do nothing for a second
-        time.sleep(1.0)
+    try:
+        while True:
+            print "---"
+            for i in range(1):#adc.NUM_CHANNELS):
+                val = adc.read_single(i)
+                print "chan%d: %d" % (i,val)
+            #do nothing for a second
+            time.sleep(1.0)
+    except KeyboardInterrupt:
+        pass
