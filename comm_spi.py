@@ -7,7 +7,7 @@ class CommSPI(object):
     """ Provides hardware of software (bit-banged) IO using SPI protocol
     """
     def __init__(self):
-        self.read = None
+        self.transfer = None
         #by default setup the hardware SPI
         self.setup_hardware()
         
