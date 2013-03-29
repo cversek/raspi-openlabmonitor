@@ -24,7 +24,9 @@ class CommSPI(object):
     
     def setup_software(self, clockpin, mosipin, misopin, cspin, pinmode):
         """ setup the GPIO pins to perform software (bit-banged) communications;
-            if pinmode is None it will default to GPIO.CBM
+            'pinmode' describes the pin mapping as GPIO.BOARD is fixed with respect
+            to the RPi platform's spec.  whereas GPIO.BCM refers to the channels
+            for the Broadcom SoC which could change in future board revisions
         """
         # set up the SPI interface pins
         GPIO.setmode(pinmode)
