@@ -1,10 +1,7 @@
 """ Object-oriented interface for SPI interface communications allowing
     either hardware or software (bit-banged) driver mode
 """
-import time
-import os
 import RPi.GPIO as GPIO
-
 
 class CommSPI(object):
     """ Provides hardware of software (bit-banged) IO using SPI protocol
