@@ -1,25 +1,41 @@
 """ Object-oriented interface for SPI interface communications allowing
     either hardware or software (bit-banged) driver mode
 """
+################################################################################
 import RPi.GPIO as GPIO
 
+################################################################################
 class CommSPI(object):
     """ Provides hardware of software (bit-banged) IO using SPI protocol
     """
     def __init__(self, device = None):
         self.transfer = None
-        #by default setup the hardware SPI
-        self.setup_hardware(device = device)
+        #by default setup the hardware SPI if device is specified
+        if not device is None:
+            self.setup_hardware(device = device)
         
     def setup_hardware(self, device):
+        """ configure the driver for hardware communications at the port 
+            specified by 'device', i.e. "/dev/spidev0.0"
+        """ 
         self._device  = device
+        #overload transfer with the right method
         self.transfer = self._transfer_hardware
     
     def setup_software(self, clockpin, mosipin, misopin, cspin):
+        """ setup the GPIO pins to perform software (bit-banged) communications
+        """ 
+        # set up the SPI interface pins
+        GPIO.setup(clockpin, GPIO.OUT)
+        GPIO.setup(mosipin , GPIO.OUT)
+        GPIO.setup(misopin , GPIO.IN )
+        GPIO.setup(cspin   , GPIO.OUT)
+        #cache the pin settings
         self._clockpin = clockpin
         self._mosipin  = mosipin
         self._misopin  = misopin
         self._cspin    = cspin
+        #overload transfer with the right method
         self.transfer  = self._transfer_software
         
     def _transfer_hardware(self, bytes_out):
