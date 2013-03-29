@@ -92,7 +92,8 @@ if __name__ == "__main__":
     try:
         while True:
             print "---"
-            for i in range(1):#adc.NUM_CHANNELS):
+            print "timestamp: %s" % time.time()
+            for i in range(adc.NUM_CHANNELS):
                 val = adc.read_single(i)
                 print "chan%d: %d" % (i,val)
             #do nothing for a second
