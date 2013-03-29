@@ -41,9 +41,9 @@ class CommSPI(object):
         inp_bytes = bytearray()            #input buffer
         for out_byte in out_bytes:
             inp_byte = 0
-            for i in range(7,-1,-1):  #binary places in MSB order
+            for i in range(7,-1,-1):       #binary places in MSB order
                 #send the output bit
-                if (2**i & out_byte):
+                if (2**i & out_byte) != 0:
                     GPIO.output(self._mosipin, True)
                 else:
                     GPIO.output(self._mosipin, False)
