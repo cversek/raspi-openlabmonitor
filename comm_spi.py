@@ -65,12 +65,14 @@ class CommSPI(object):
                     GPIO.output(self._mosipin, True)
                 else:
                     GPIO.output(self._mosipin, False)
-                #pulse the clock
+                #tick the clock up - pushes output, latches input
                 GPIO.output(self._clockpin, True)
-                GPIO.output(self._clockpin, False)
                 #read the input bit
                 if (GPIO.input(self._misopin)):
                     inp_byte += 2**i
+                #tick the clock down - get ready for next cycle
+                GPIO.output(self._clockpin, False)
+	    #finished transfer of byte
             inp_bytes.append(inp_byte)
             
         #finish transmission by toggling chip select     
