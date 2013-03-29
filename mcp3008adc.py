@@ -25,10 +25,10 @@ class MCP3008ADC(object):
         """ 
         self._spi.setup_hardware(device)
     
-    def setup_software_spi(self, clockpin, mosipin, misopin, cspin):
+    def setup_software_spi(self, clockpin, mosipin, misopin, cspin, pinmode):
         """ setup the GPIO pins to perform software (bit-banged) communications
         """ 
-        self._spi.setup_software(clockpin, mosipin, misopin, cspin)
+        self._spi.setup_software(clockpin, mosipin, misopin, cspin, pinmode)
         
     def read_single(self, chan):
         """ get the ADC value in single-ended mode

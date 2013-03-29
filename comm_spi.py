@@ -22,9 +22,10 @@ class CommSPI(object):
         #overload transfer with the right method
         self.transfer = self._transfer_hardware
     
-    def setup_software(self, clockpin, mosipin, misopin, cspin, pinmode = GPIO.BCM):
-        """ setup the GPIO pins to perform software (bit-banged) communications
-        """ 
+    def setup_software(self, clockpin, mosipin, misopin, cspin, pinmode):
+        """ setup the GPIO pins to perform software (bit-banged) communications;
+            if pinmode is None it will default to GPIO.CBM
+        """
         # set up the SPI interface pins
         GPIO.setmode(pinmode)
         GPIO.setup(clockpin, GPIO.OUT)
