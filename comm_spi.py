@@ -74,7 +74,7 @@ class CommSPI(object):
             inp_bytes.append(inp_byte)
             
         #finish transmission by toggling chip select     
-        GPIO.output(cspin, True)
+        GPIO.output(self._cspin, True)
         return inp_bytes
  
 ################################################################################

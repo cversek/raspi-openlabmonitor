@@ -33,7 +33,7 @@ class MCP3008ADC(object):
     def read_single(self, chan):
         """ get the ADC value in single-ended mode
         """
-        if not chanin range(self.NUM_CHANNELS):
+        if not chan in range(self.NUM_CHANNELS):
             raise ValueError, "'chan' must be in %r" % range(self.NUM_CHANNELS)
         #command byte is (sgl/diff,D2,D1,D0,X,X,X,X)
         cmd  = 1 << 7            #single-ended bit
@@ -53,7 +53,7 @@ class MCP3008ADC(object):
         return self._run_transaction(cmd)
         
     def _run_transaction(self, cmd):
-        bytes_out = bytesarray()
+        bytes_out = bytearray()
         bytes_out.append(0x01)   #start bit
         #command byte is (sgl/diff,D2,D1,D0,X,X,X,X)
         bytes_out.append(cmd)
@@ -92,6 +92,6 @@ if __name__ == "__main__":
     while True:
         for i in range(adc.NUM_CHANNELS):
             val = adc.read_single(i)
-            print "channel %d: %d" val
+            print "channel %d: %d" % (i,val)
         #do nothing for a second
         time.sleep(1.0)
