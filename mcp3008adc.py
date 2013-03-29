@@ -73,8 +73,6 @@ class MCP3008ADC(object):
 if __name__ == "__main__": 
     #configure the pin order as Broadcom SoC channels
     GPIO.setmode(GPIO.BCM)
- 
-    #read SPI data from MCP3008 chip, 8 possible adc's (0 thru 7)
 
     # change these as desired - they're the pins connected from the
     # SPI port on the ADC to the Cobbler
@@ -89,7 +87,8 @@ if __name__ == "__main__":
                            mosipin  = SPIMOSI,
                            cspin    = SPICS,
                           ) 
- 
+                          
+    #read SPI data from MCP3008 chip, 8 possible adc's (0 thru 7)
     while True:
         for i in range(adc.NUM_CHANNELS):
             val = adc.read_single(i)
