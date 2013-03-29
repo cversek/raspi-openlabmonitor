@@ -70,22 +70,22 @@ class MCP3008ADC(object):
 ################################################################################
 # TEST CODE
 ################################################################################
-if __name__ == "__main__": 
-    #configure the pin order as Broadcom SoC channels
-    GPIO.setmode(GPIO.BCM)
-
+if __name__ == "__main__":
+    import RPi.GPIO as GPIO
     # change these as desired - they're the pins connected from the
     # SPI port on the ADC to the Cobbler
     SPICLK = 18
     SPIMISO = 23
     SPIMOSI = 24
     SPICS = 25
+    PINMODE = GPIO.BCM  #configure the pin order as Broadcom SoC channels
  
     adc = MCP3008ADC()
     adc.setup_software_spi(clockpin = SPICLK,
                            misopin  = SPIMISO,
                            mosipin  = SPIMOSI,
                            cspin    = SPICS,
+                           pinmode  = PINMODE
                           ) 
                           
     #read SPI data from MCP3008 chip, 8 possible adc's (0 thru 7)
