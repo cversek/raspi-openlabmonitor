@@ -1,0 +1,212 @@
+################################################################################
+import os,sys,time
+from collections import OrderedDict
+import numpy as np
+from mcp3008adc import MCP3008ADC
+
+ADCS = {'mcp3008': MCP3008ADC}
+
+    
+DEFAULT_OUTPUT_FILE = "./data.csv"
+DEFAULT_VERBOSE     = True
+DEFAULT_BUFFSIZE    = 1
+################################################################################
+class Application:
+    def __init__(self, adc, channels, modes, delay, output_file, 
+                 buffsize = DEFAULT_BUFFSIZE,
+                 store_error = False,
+                 csv_delimiter = ",",
+                 csv_newline   = "\n",
+                 verbose       = False,
+                 ):
+        self.adc       = adc
+        self.channels  = channels
+        self.modes     = modes
+        self.buffer    = []
+        self.delay       = delay
+        self.output_file = output_file
+        self.buffsize    = buffsize
+        self.store_error = store_error
+        self.csv_delimiter   = csv_delimiter
+        self.csv_newline     = csv_newline
+        self.verbose   = verbose
+        
+        
+    def sample(self, size = 1, number = None):
+        adc = self.adc
+        channels     = self.channels
+        modes        = self.modes
+        num_chans    = len(channels)
+        chan_indices = range(num_chans) 
+        buffsize     = self.buffsize
+        delay        = self.delay
+        try:
+            i = 0
+            while i < number or number is None:
+                t0 = time.time()
+                subsamps = [[]]*num_chans
+                for j in range(size):
+                    for index,chan,mode in zip(chan_indices,channels,modes):
+                        subsamp = adc.read(chan, mode = mode)
+                        subsamps[index].append(subsamp)
+                t1 = time.time()
+                record = [(t0+t1)/2.0, t1-t0]
+                #convert subsample to array for processing
+                subsamps = np.array(subsamps)
+                sample = subsamps.mean(axis=1)  #average columnwise
+                if self.store_error:
+                    err = subsamps.std(axis=1)  #std.dev. columnwise
+                    for s,e in zip(sample,err):
+                        record += [s,e]
+                else:
+                    record += list(sample)
+                self.buffer.append(record)
+                i += 1
+                if i % buffsize == 0:
+                    if self.verbose:
+                        print "%d samples collected, flushing buffer..." % i
+                    self.flush_buffer()
+                #do nothing for a while
+                time.sleep(delay)
+        except KeyboardInterrupt:
+            return i
+        finally:
+            self.close()
+            
+    def flush_buffer(self):
+        for record in self.buffer:
+            line = self.csv_delimiter.join(map(str,record))
+            self.output_file.write(line)
+            self.output_file.write(self.csv_newline)
+        self.output_file.flush()
+        self.buffer = []
+        
+    def close(self):
+        self.flush_buffer()
+        self.output_file.close()
+        
+        
+
+################################################################################
+# MAIN
+################################################################################
+import RPi.GPIO as GPIO
+#TODO these pin settings should be configurable from the commandline
+ADC_SPI_TYPE = "software"
+SPICLK  = 18
+SPIMISO = 23
+SPIMOSI = 24
+SPICS   = 25
+PINMODE = GPIO.BCM  #configure the pin order as Broadcom SoC channels
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--adc", 
+                        help = "the type of adc chip to sample from",
+                        default = "mcp3008",
+                       )
+    parser.add_argument("-c", "--channels", 
+                        help = "channels to sample separated by ','",
+                        default = "0",
+                       )
+    parser.add_argument("-m", "--modes", 
+                        help = "modes for each channel 's' (single-end) or 'd' (differential) separated by ','",
+                        default = "s",
+                       )
+    parser.add_argument("-d", "--delay", 
+                        help = "delay in seconds",
+                        default = 1.0,
+                       )
+    parser.add_argument("-s", "--samp_size", 
+                        help = "number of subsamples to average for each recorded sample",
+                        default = 1,
+                       )
+    parser.add_argument("-n", "--samp_num", 
+                        help = "number of samples to collect",
+                        default = None,
+                       )
+    parser.add_argument("-e", "--store_error", 
+                        help = "store the errors of the samples (std. dev. of subsamples)",
+                        action="store_true",
+                        default = False,
+                       )  
+    parser.add_argument("-o", "--output_file", 
+                        help = "file to store samples",
+                        default = DEFAULT_OUTPUT_FILE,
+                       )                      
+    parser.add_argument("-v", "--verbose", 
+                        help="increase output verbosity",
+                        action="store_true",
+                        default = DEFAULT_VERBOSE,
+                       )
+    args = parser.parse_args()
+    #check the adc argument and configure the acquisition
+    adc_class = ADCS[args.adc]
+    adc = adc_class()
+    adc_spi_type = ADC_SPI_TYPE #TODO add hardware support handling
+    if adc_spi_type == "software":
+        adc.setup_software_spi(clockpin = SPICLK,
+                               misopin  = SPIMISO,
+                               mosipin  = SPIMOSI,
+                               cspin    = SPICS,
+                               pinmode  = PINMODE
+                              )
+    else:
+        raise NotImplemented #TODO
+    #check the channels argument
+    channels = args.channels
+    channels = map(int,channels.split(','))
+    #check the modes argument
+    modes    = args.modes.split(',')
+    assert len(modes) <= len(channels)
+    #fill in missing modes as single-ended
+    if modes == ['']:
+        modes = ['s']*len(channels)
+    else:  
+        for m in modes:
+            assert m in ['s','d']
+        modes = modes + ['s']*(len(channels) - len(modes))
+    #check delay argument
+    delay = float(args.delay)
+    #check samp_size argument
+    samp_size = int(args.samp_size)
+    #check samp_num argument
+    samp_num = None
+    if not args.samp_num is None:
+        samp_num = int(args.samp_num)
+    #check output file argument
+    output_file = None
+    output_mode = None
+    if os.path.isfile(args.output_file):
+        print "-"*20
+        res = ""
+        while not res in ['A','a','O','o','Q','q']:
+            res = raw_input("Output file '%s' already exists, (A)ppend/(O)verwrite/(Q)uit?: " % args.output_file)
+            if res in ['A','a']:
+                output_file = open(args.output_file,'a')
+                output_mode = "append"
+            elif res in ['O','o']:
+                output_file = open(args.output_file,'w')
+                output_mode = "overwrite"
+            elif res in ['Q','q']:
+                sys.exit(0)
+    else:
+        output_file = open(args.output_file,'w')
+        output_mode = 'create'
+                     
+    if args.verbose:
+        print "Writing (mode=\"%s\") output file: %s" % (output_mode,args.output_file)
+        print "Sampling from channels /w modes:", zip(channels,modes)
+        
+    #configure the application and start acquisition
+    app = Application(adc      = adc,
+                      channels = channels,
+                      modes    = modes,
+                      delay    = delay,
+                      output_file = output_file,
+                      store_error = args.store_error,
+                      verbose  = args.verbose,
+                      )
+    app.sample(samp_size, samp_num)
+    
