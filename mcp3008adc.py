@@ -4,6 +4,8 @@
 ################################################################################
 import time, os
 from comm_spi import CommSPI
+
+DEFAULT_VREF = 3.3
 ################################################################################ 
 class MCP3008ADC(object):
     """ Interface for MCP3008 8-Channel 10-Bit A/D Converters
@@ -15,9 +17,15 @@ class MCP3008ADC(object):
         Software mode SPI (bit-banged) can configured using 
         'setup_software_spi'.  
     """
-    NUM_CHANNELS = 8
-    def __init__(self, spi_device = None):
+    NUM_CHANNELS   = 8
+    MODEL          = 'MCP3008'
+    BIT_RESOLUTION = 10
+    def __init__(self, 
+                 spi_device = None, 
+                 vref = DEFAULT_VREF,
+                ):
         self._spi = CommSPI(device = spi_device)
+        self.vref = vref
         
     def setup_hardware_spi(self, device):
         """ configure the driver for hardware communications at the port 
@@ -30,10 +38,10 @@ class MCP3008ADC(object):
         """ 
         self._spi.setup_software(clockpin, mosipin, misopin, cspin, pinmode)
         
-    def read(self, chan, mode =' single'):
+    def read(self, chan, mode = 's'):
         """ get the ADC value in specified 'mode':
-              'single-ended': chan = IN+, gnd = IN-
-              'diff':         differential mode for each channel pair
+              's': single-ended, chan = IN+, gnd = IN-
+              'd': differential, for each channel pair
                    e.g. chan = 0 => CH0 = IN+, CH1 = IN-
                         chan = 1 => CH0 = IN-, CH1 = IN+
         """
@@ -41,10 +49,12 @@ class MCP3008ADC(object):
             raise ValueError, "'chan' must be in %r" % range(self.NUM_CHANNELS)
         #command byte is (sgl/diff,D2,D1,D0,X,X,X,X)
         cmd  = None
-        if mode == 'single':
-            cmd  = 1 << 7            #single-ended bit
-        elif mode = 'diff':
-            cmd  = 0
+        if   mode == 's':
+            cmd  = 1 << 7        #single-ended bit
+        elif mode == 'd':
+            cmd  = 0             #differential, null bit
+        else:
+            raise ValueError, "mode must be 's' (or 'diff'"
         cmd |= chan << 4         #D2,D1,D0
         return self._run_transaction(cmd)
         
