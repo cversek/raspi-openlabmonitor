@@ -32,7 +32,7 @@ class Application:
         self.verbose   = verbose
         
         
-    def sample(self, size = 1, number = None):
+    def sample(self, samp_size = 1, samp_num = None):
         adc = self.adc
         channels     = self.channels
         modes        = self.modes
@@ -40,17 +40,33 @@ class Application:
         chan_indices = range(num_chans) 
         buff_size    = self.buff_size
         delay        = self.delay
+        #collect metadata and write it to the file header
+        metadata = OrderedDict()
+        metadata['start_timestamp'] = t0 = time.time()
+        metadata['adc_model']       = adc.MODEL
+        metadata['adc_bit_res']     = adc.BIT_RESOLUTION
+        metadata['adc_vref']        = adc.vref     
+        metadata['channels']        = channels
+        metadata['modes']           = modes
+        metadata['samp_size']       = samp_size
+        metadata['samp_num']        = samp_num
+        metadata['delay']           = delay
+        metadata['store_error']     = self.store_error
+        self.write_header(metadata)
+        #begin sampling
         try:
             i = 0
-            while i < number or number is None:
-                t0 = time.time()
+            while i < samp_num or samp_num is None:
+                t1 = time.time()
                 subsamps = [[]]*num_chans
-                for j in range(size):
+                for j in range(samp_size):
                     for index,chan,mode in zip(chan_indices,channels,modes):
                         subsamp = adc.read(chan, mode = mode)
                         subsamps[index].append(subsamp)
-                t1 = time.time()
-                record = [(t0+t1)/2.0, t1-t0]
+                t2 = time.time()
+                t_samp = (t1+t2)/2.0 - t0
+                t_err  = (t2-t1)/2.0
+                record = [t_samp, t_err]
                 #convert subsample to array for processing
                 subsamps = np.array(subsamps)
                 sample = subsamps.mean(axis=1)  #average columnwise
@@ -72,6 +88,25 @@ class Application:
             return i
         finally:
             self.close()
+            
+    def write_header(self, metadata):
+        self.output_file.write("#<METADATA>")
+        self.output_file.write(self.csv_newline)
+        for key, val in metadata.items():
+            self.output_file.write("#%s = %r" % (key,val))
+            self.output_file.write(self.csv_newline)
+        self.output_file.write("#</METADATA>")
+        self.output_file.write(self.csv_newline)
+        #column descriptor
+        line = ["#t_samp (s)", "t_err(s)"]
+        for chan in self.channels:
+            line += ["chan%d" % chan]
+            if self.store_error:
+                line += ["chan%d_err" % chan]
+        self.output_file.write(self.csv_delimiter.join(line))
+        self.output_file.write(self.csv_newline)
+        self.output_file.flush()
+            
             
     def flush_buffer(self):
         for record in self.buffer:
@@ -208,15 +243,19 @@ if __name__ == "__main__":
         print "Writing (mode=\"%s\") output file: %s" % (output_mode,args.output_file)
         print "Sampling from channels /w modes:", zip(channels,modes)
         
-    #configure the application and start acquisition
-    app = Application(adc      = adc,
-                      channels = channels,
-                      modes    = modes,
-                      delay    = delay,
-                      buff_size = buff_size,
+    #configure the application
+    app = Application(adc         = adc,
+                      channels    = channels,
+                      modes       = modes,
+                      delay       = delay,
+                      buff_size   = buff_size,
                       output_file = output_file,
                       store_error = args.store_error,
-                      verbose  = args.verbose,
+                      verbose     = args.verbose,
                       )
-    app.sample(samp_size, samp_num)
+    
+    #start acquisition
+    app.sample(samp_size = samp_size, 
+               samp_num  = samp_num,
+              )
     
