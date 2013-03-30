@@ -13,7 +13,7 @@ DEFAULT_BUFFSIZE    = 1
 ################################################################################
 class Application:
     def __init__(self, adc, channels, modes, delay, output_file, 
-                 buffsize = DEFAULT_BUFFSIZE,
+                 buff_size = DEFAULT_BUFFSIZE,
                  store_error = False,
                  csv_delimiter = ",",
                  csv_newline   = "\n",
@@ -25,7 +25,7 @@ class Application:
         self.buffer    = []
         self.delay       = delay
         self.output_file = output_file
-        self.buffsize    = buffsize
+        self.buff_size   = buff_size
         self.store_error = store_error
         self.csv_delimiter   = csv_delimiter
         self.csv_newline     = csv_newline
@@ -38,7 +38,7 @@ class Application:
         modes        = self.modes
         num_chans    = len(channels)
         chan_indices = range(num_chans) 
-        buffsize     = self.buffsize
+        buff_size    = self.buff_size
         delay        = self.delay
         try:
             i = 0
@@ -62,7 +62,7 @@ class Application:
                     record += list(sample)
                 self.buffer.append(record)
                 i += 1
-                if i % buffsize == 0:
+                if i % buff_size == 0:
                     if self.verbose:
                         print "%d samples collected, flushing buffer..." % i
                     self.flush_buffer()
@@ -126,11 +126,15 @@ if __name__ == "__main__":
                         help = "number of samples to collect",
                         default = None,
                        )
+    parser.add_argument("-b", "--buff_size", 
+                        help = "number of samples to hold in memory before writing to disk",
+                        default = DEFAULT_BUFFSIZE,
+                       )
     parser.add_argument("-e", "--store_error", 
                         help = "store the errors of the samples (std. dev. of subsamples)",
                         action="store_true",
                         default = False,
-                       )  
+                       )
     parser.add_argument("-o", "--output_file", 
                         help = "file to store samples",
                         default = DEFAULT_OUTPUT_FILE,
@@ -171,10 +175,15 @@ if __name__ == "__main__":
     delay = float(args.delay)
     #check samp_size argument
     samp_size = int(args.samp_size)
+    assert samp_size > 0
     #check samp_num argument
     samp_num = None
     if not args.samp_num is None:
         samp_num = int(args.samp_num)
+        assert samp_num > 0
+    #check buff_size argument
+    buff_size = int(args.buff_size)
+    assert buff_size > 0   
     #check output file argument
     output_file = None
     output_mode = None
@@ -204,6 +213,7 @@ if __name__ == "__main__":
                       channels = channels,
                       modes    = modes,
                       delay    = delay,
+                      buff_size = buff_size,
                       output_file = output_file,
                       store_error = args.store_error,
                       verbose  = args.verbose,
