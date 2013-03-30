@@ -53,6 +53,11 @@ class Application:
         metadata['delay']           = delay
         metadata['store_error']     = self.store_error
         self.write_header(metadata)
+        if self.verbose:
+            print "Starting aquistion with the following settings:"
+            for key,val in metadata.items():
+                print "\t%s = %r" % (key,val)
+            print "Beginning to sample"
         #begin sampling
         try:
             i = 0
@@ -150,7 +155,7 @@ if __name__ == "__main__":
                         default = "s",
                        )
     parser.add_argument("-d", "--delay", 
-                        help = "delay in seconds",
+                        help = "delay between samples in seconds",
                         default = 1.0,
                        )
     parser.add_argument("-s", "--samp_size", 
@@ -241,7 +246,6 @@ if __name__ == "__main__":
                      
     if args.verbose:
         print "Writing (mode=\"%s\") output file: %s" % (output_mode,args.output_file)
-        print "Sampling from channels /w modes:", zip(channels,modes)
         
     #configure the application
     app = Application(adc         = adc,
