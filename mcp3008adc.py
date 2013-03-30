@@ -30,26 +30,22 @@ class MCP3008ADC(object):
         """ 
         self._spi.setup_software(clockpin, mosipin, misopin, cspin, pinmode)
         
-    def read_single(self, chan):
-        """ get the ADC value in single-ended mode
+    def read(self, chan, mode =' single'):
+        """ get the ADC value in specified 'mode':
+              'single-ended': chan = IN+, gnd = IN-
+              'diff':         differential mode for each channel pair
+                   e.g. chan = 0 => CH0 = IN+, CH1 = IN-
+                        chan = 1 => CH0 = IN-, CH1 = IN+
         """
         if not chan in range(self.NUM_CHANNELS):
             raise ValueError, "'chan' must be in %r" % range(self.NUM_CHANNELS)
         #command byte is (sgl/diff,D2,D1,D0,X,X,X,X)
-        cmd  = 1 << 7            #single-ended bit
+        cmd  = None
+        if mode == 'single':
+            cmd  = 1 << 7            #single-ended bit
+        elif mode = 'diff':
+            cmd  = 0
         cmd |= chan << 4         #D2,D1,D0
-        return self._run_transaction(cmd)
-        
-    def read_diff(self, chan_pair):
-        """ get the ADC value in differential mode for each channel pair
-            e.g. channel_pair = 0 => CH0 = IN+, CH1 = IN-
-                 channel_pair = 1 => CH0 = IN-, CH1 = IN+
-        """
-        if not chan_pair in range(self.NUM_CHANNELS):
-            raise ValueError, "'chan_pair' must be in %r" % range(self.NUM_CHANNELS)
-        #command byte is (sgl/diff,D2,D1,D0,X,X,X,X)
-        cmd  = 0 << 7            #differential bit
-        cmd |= chan_pair << 4    #D2,D1,D0
         return self._run_transaction(cmd)
         
     def _run_transaction(self, cmd):
