@@ -63,7 +63,7 @@ class Application:
             i = 0
             while i < samp_num or samp_num is None:
                 t1 = time.time()
-                subsamps = [[]]*num_chans
+                subsamps = [[] for chan in range(num_chans)]
                 for j in range(samp_size):
                     for index,chan,mode in zip(chan_indices,channels,modes):
                         subsamp = adc.read(chan, mode = mode)
