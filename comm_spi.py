@@ -6,7 +6,7 @@ import RPi.GPIO as GPIO
 
 ################################################################################
 class CommSPI(object):
-    """ Provides hardware of software (bit-banged) IO using SPI protocol
+    """ Provides hardware (TODO) or software (bit-banged) IO using SPI protocol
     """
     def __init__(self, device = None):
         self.transfer = None
