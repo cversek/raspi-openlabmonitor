@@ -25,7 +25,9 @@ class MCP3008ADC(object):
                  vref = DEFAULT_VREF,
                 ):
         self._spi = CommSPI(device = spi_device)
-        self.vref = vref
+        self.vref       = float(vref)
+        self.resolution = 2**self.BIT_RESOLUTION - 1
+        self.scale      = self.vref/self.resolution
         
     def setup_hardware_spi(self, device):
         """ configure the driver for hardware communications at the port 
@@ -39,7 +41,18 @@ class MCP3008ADC(object):
         self._spi.setup_software(clockpin, mosipin, misopin, cspin, pinmode)
         
     def read(self, chan, mode = 's'):
-        """ get the ADC value in specified 'mode':
+        """ get the ADC voltage scaled value in specified 'mode':
+              's': single-ended, chan = IN+, gnd = IN-
+              'd': differential, for each channel pair
+                   e.g. chan = 0 => CH0 = IN+, CH1 = IN-
+                        chan = 1 => CH0 = IN-, CH1 = IN+
+        """
+        raw_val = self.read_raw(chan=chan,mode=mode)
+        V = raw_val*self.scale
+        return V
+        
+    def read_raw(self, chan, mode = 's'):
+        """ get the raw ADC value in specified 'mode':
               's': single-ended, chan = IN+, gnd = IN-
               'd': differential, for each channel pair
                    e.g. chan = 0 => CH0 = IN+, CH1 = IN-
@@ -56,7 +69,8 @@ class MCP3008ADC(object):
         else:
             raise ValueError, "mode must be 's' (or 'diff'"
         cmd |= chan << 4         #D2,D1,D0
-        return self._run_transaction(cmd)
+        raw_val = self._run_transaction(cmd)
+        return raw_val
         
     def _run_transaction(self, cmd):
         bytes_out = bytearray()
