@@ -17,8 +17,8 @@ class Thermistor(object):
         
         Calculations:
             If 'V_ref' is the reference voltage, 'V' is the sensed ADC voltage, 
-            'R_std' is the bottom leg of the voltage divider, and 'R_thrm' is 
-            the thermistor's resistance on the upper leg, then
+            'R_std' is the resistance of the upper leg of the voltage divider, 
+            and 'R_thrm' is the thermistor's resistance on the lower leg, then
                 R_thrm = V*R_std/(V_ref - V)
             The temperature is computed from a version of the Steinhart-Hart 
             formula
