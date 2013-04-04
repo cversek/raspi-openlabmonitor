@@ -1,14 +1,16 @@
 CC = gcc
-CFLAGS =  -fPIC -Wall -O2 -std=c99 -I. -lbcm2835
-DEPS = 
-OBJ = libdht.o
+CFLAGS =  -fPIC -Wall -O2 -std=c99 
+LIBS = -lwiringPi
+ALLOBJ = libdht.o
 
-%.o: %.c $(DEPS)
+%.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-libdht.so: $(OBJ)
-	$(CC) -shared -o $@ $^
+libdht.so: $(ALLOBJ)
+	$(CC) -shared -o $@ $^ $(LIBS)
 
 .PHONY: clean
 clean:
-	rm -f $(ALLOBJ) libfli.o libfli.a
+	rm -f $$(find . | grep "[.]pyc")
+	rm -f $$(find . | grep "~$$")
+	rm -f $(ALLOBJ) libdht.so

@@ -1,154 +1,177 @@
 /*
-   libdht   - A Raspberry-Pi library for one-wire communication with 
-              Aosong(Guangzhou) Electronics' DHT11 and DHT22 humidity and 
-              temperature sensors.
+   libdht   - A Raspberry-Pi wiringPi based library for one-wire communication 
+              with Aosong(Guangzhou) Electronics' DHT11 and DHT22 humidity and 
+              temperature sensors.  This library is safe to access from
+              a foreign function interface in languages like Python and
+              will not crash the interpreter on error conditions.
               
-              This code is based off of Adafruit's experimental driver located
-              at https://github.com/adafruit/Adafruit-Raspberry-Pi-Python-Code/tree/master/Adafruit_DHT_Driver
+              Author: cversek@gmail.com  
+              
+              Attribution:  This code is based off of Adafruit's experimental 
+                  driver located at https://github.com/adafruit/Adafruit-Raspberry-Pi-Python-Code/tree/master/Adafruit_DHT_Driver
+                  and Technion's (technion@lolware.net) wiringPi driver located 
+                  at https://github.com/technion/lol_dht22/blob/master/dht22.c
               
               Note: This code must be compiled on the Raspberry Pi or in a
                     suitable cross-compiler or emulation environment.
 */
+
+#include <wiringPi.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <dirent.h>
-#include <fcntl.h>
-#include <assert.h>
-#include <unistd.h>
-#include <sys/mman.h>
+#include <stdint.h>
 #include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <bcm2835.h>
 #include <unistd.h>
-#include "libDHT.h"
+#include "libdht.h"
 
-//#define DEBUG
-#define MAXTIMINGS 100
+#define MAXWAIT_ACK 50
+#define COUNTERMAX 255
+#define MAXTIMINGS 85
 
-//  How to access GPIO registers from C-code on the Raspberry-Pi
-//  Example program
-//  15-January-2012
-//  Dom and Gert
+#define COUNTERTHRESH 20
+
+static int dht22_dat[5] = {0,0,0,0,0};
+
 //
-// Access from ARM Running Linux
-#define BCM2708_PERI_BASE        0x20000000
-#define GPIO_BASE                (BCM2708_PERI_BASE + 0x200000) /* GPIO controller */
-
-#define ERROR_BCM2835_INIT_FAIL -1
-
-//allocate data buffers
-int bits[250], data[100];
-int bitidx = 0;
-
-// LibDHTinit - initialize 
-int LibDHTinit(void)
+// Setup the wiringPi library in Broadcom numbering scheme, this best
+// matches Adafruit's Pi Cobbler pinout
+//   see: https://projects.drogon.net/raspberry-pi/wiringpi/pins/
+int setupBCM(void)
 {
-  if (!bcm2835_init())
-        return ERROR_BCM2835_INIT_FAIL;
-  return 0;
+  int res;
+  
+  if(geteuid() != 0)
+  {
+    perror("Must run with root permissions ('sudo python ...')\n");
+    return ERROR_NO_ROOT_PERMISSION;
+  }
+  
+  if (wiringPiSetupGpio() == -1)
+    perror("Setup of wiringPi failed\n");
+    return ERROR_WIRINGPI_SETUP_FAILED;
+
+  if (setuid(getuid()) < 0)
+  {
+    perror("Dropping privileges failed\n");
+    return ERROR_COULD_NOT_DROP_PRIVILEDGES;
+  }
+  // try to get realtime priority to enhance timing reliabilty
+  res = piHiPri(99);
+  if (res < 0){
+    printf("WARNING: 'piHiPri' priority could not be set to 99\n");
+  }
+  return 0 ;
 }
 
-// LibDHTread - read a sensor of a 'type' at 'pin'
-int readDHT(int type, int pin)
+//
+// Setup the wiringPi library in the simplified numbering scheme
+//  see: https://projects.drogon.net/raspberry-pi/wiringpi/pins/
+int setupWiring(void)
 {
-  int counter = 0;
-  int laststate = HIGH;
-  int j=0;
-
-  // Set GPIO pin to output
-  bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP);
-
-  bcm2835_gpio_write(pin, HIGH);
-  usleep(500000);  // 500 ms
-  bcm2835_gpio_write(pin, LOW);
-  usleep(20000);
-
-  bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);
-
-  data[0] = data[1] = data[2] = data[3] = data[4] = 0;
-
-  // wait for pin to drop?
-  while (bcm2835_gpio_lev(pin) == 1)
+  int res;
+  
+  if(geteuid() != 0)
   {
-    usleep(1);
+    perror("Must run with root permissions ('sudo python ...')\n");
+    return ERROR_NO_ROOT_PERMISSION;
+  }
+  
+  if (wiringPiSetup() == -1)
+    perror("Setup of wiringPi failed\n");
+    return ERROR_WIRINGPI_SETUP_FAILED;
+
+  if (setuid(getuid()) < 0)
+  {
+    perror("Dropping privileges failed\n");
+    return ERROR_COULD_NOT_DROP_PRIVILEDGES;
+  }
+  // try to get realtime priority to enhance timing reliabilty
+  res = piHiPri(99);
+  if (res < 0){
+    printf("WARNING: 'piHiPri' priority could not be set to 99\n");
+  }
+  return 0 ;
+}
+
+int read_dht22(int pin, float *humidity, float *temperature)
+{
+  uint8_t currstate = HIGH;
+  uint8_t laststate = HIGH;
+  uint8_t counter = 0;
+  uint8_t j = 0, i;
+
+  dht22_dat[0] = dht22_dat[1] = dht22_dat[2] = dht22_dat[3] = dht22_dat[4] = 0;
+
+  pinMode(pin, OUTPUT);
+  // start with pin pulled up
+  digitalWrite(pin, HIGH);
+  delayMicroseconds(500);
+  // pull pin down for 18 milliseconds
+  digitalWrite(pin, LOW);
+  delay(18);
+  //delayMicroseconds(18000);
+  // then pull it up for 40 microseconds
+  digitalWrite(pin, HIGH);
+  //delayMicroseconds(30);
+  // prepare to read the pin
+  pinMode(pin, INPUT);
+  delayMicroseconds(30);
+  
+  
+  // wait for pin to drop?
+  // detect change and read data
+  for ( i=0; i < MAXWAIT_ACK; i++) {
+    if (digitalRead(pin) == LOW) break;
+    delayMicroseconds(1);
+  }
+  if (i == MAXWAIT_ACK){
+    return ERROR_NO_RESPONSE;
   }
 
-  // read data!
-  for (int i=0; i< MAXTIMINGS; i++)
-    {
+  // detect change and read data
+  for ( i=0; i < MAXTIMINGS; i++) {
     counter = 0;
-    while ( bcm2835_gpio_lev(pin) == laststate)
-    {
-      counter++
-      //nanosleep(1);  // overclocking might change this?
-      if (counter == 1000)
-          break;
+    currstate = digitalRead(pin);
+    while (currstate == laststate) {
+      counter++;
+      delayMicroseconds(1);
+      if (counter == COUNTERMAX) {break;
+      }
+      currstate = digitalRead(pin);
     }
-    laststate = bcm2835_gpio_lev(pin);
-    if (counter == 1000) 
-      break;
-    bits[bitidx++] = counter;
-
-    if ((i>3) && (i%2 == 0)) 
-    {
+    laststate = currstate;
+    if (counter == COUNTERMAX) break;
+    // ignore first 3 transitions
+    if ((i >= 4) && (i%2 == 0)) {
       // shove each bit into the storage bytes
-      data[j/8] <<= 1;
-      if (counter > 200)
-        data[j/8] |= 1;
+      dht22_dat[j/8] <<= 1;
+      if (counter > COUNTERTHRESH)
+        dht22_dat[j/8] |= 1;
       j++;
     }
   }
-  
-  #ifdef DEBUG
-  for (int i=3; i<bitidx; i+=2) 
-  {
-    printf("bit %d: %d\n", i-3, bits[i]);
-    printf("bit %d: %d (%d)\n", i-2, bits[i+1], bits[i+1] > 200);
+  //printf("Data (%d): 0x%x 0x%x 0x%x 0x%x 0x%x", j, dht22_dat[0], dht22_dat[1], dht22_dat[2], dht22_dat[3], dht22_dat[4]);
+  // check we read 40 bits (8bit x 5 ) + verify checksum in the last byte
+  // print it out if data is good
+  if ((j >= 40) &&
+      (dht22_dat[4] == ((dht22_dat[0] + dht22_dat[1] + dht22_dat[2] + dht22_dat[3]) & 0xFF)) ) {
+        float t, h;
+        h = (float)dht22_dat[0] * 256 + (float)dht22_dat[1];
+        h /= 10;
+        t = (float)(dht22_dat[2] & 0x7F)* 256 + (float)dht22_dat[3];
+        t /= 10.0;
+        if ((dht22_dat[2] & 0x80) != 0) t *= -1;
+    //pass back data by reference
+    *humidity = h;
+    *temperature = t;
+    //printf("\n");
+    return 0;
   }
-  #endif
+  else
+  {
+    //printf(" BAD CHECKSUM\n");
+    return ERROR_BAD_DATA_CHECKSUM;
+  }
 }
-/*  */
-/*  switch(type){*/
-/*  case DHT11:*/
-/*    break;*/
-/*  case DHT22:*/
-/*    break;*/
-/*  case AM2302:*/
-/*    break;*/
-/*  }*/
-/*  int dhtpin = atoi(argv[2]);*/
-
-/*  if (dhtpin <= 0) {*/
-/*	printf("Please select a valid GPIO pin #\n");*/
-/*	return 3;*/
-/*  }*/
 
 
-/*  printf("Using pin #%d\n", dhtpin);*/
-
-
-
-/*  printf("Data (%d): 0x%x 0x%x 0x%x 0x%x 0x%x\n", j, data[0], data[1], data[2], data[3], data[4]);*/
-
-/*  if ((j >= 39) &&*/
-/*      (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF)) ) {*/
-/*     // yay!*/
-/*     if (type == DHT11)*/
-/*	printf("Temp = %d *C, Hum = %d \%\n", data[2], data[0]);*/
-/*     if (type == DHT22) {*/
-/*	float f, h;*/
-/*	h = data[0] * 256 + data[1];*/
-/*	h /= 10;*/
-
-/*	f = (data[2] & 0x7F)* 256 + data[3];*/
-/*        f /= 10.0;*/
-/*        if (data[2] & 0x80)  f *= -1;*/
-/*	printf("Temp =  %.1f *C, Hum = %.1f \%\n", f, h);*/
-/*    }*/
-/*    return 1;*/
-/*  }*/
-
-/*  return 0;*/
-/*}*/
