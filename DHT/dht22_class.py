@@ -14,7 +14,7 @@ from lib import DHTLibrary, ERROR_CORRUPTED_READ, ERROR_BAD_DATA_CHECKSUM, ERROR
 
 ###############################################################################
 DEBUG = True
-RDEFAULT_READ_ATTEMPTS = 10
+DEFAULT_READ_ATTEMPTS = 10
 NO_RESPONSE_DELAY = 0.4 #seconds
 ###############################################################################
 class DHT22(object):
