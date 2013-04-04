@@ -1,6 +1,6 @@
 This Python package is based off of open source code in 
 "Adafruit's Raspberry-Pi Python Code Library"
-particularly [Adafruit_DHT_Driver](https://github.com/adafruit/Adafruit-Raspberry-Pi-Python-Code/tree/master/Adafruit_DHT_Driver)
+particularly [Adafruit_DHT_Driver](https://github.com/adafruit/Adafruit-Raspberry-Pi-Python-Code/tree/master/Adafruit_DHT_Driver).
 Go buy your DHT sensor from them, because they are awesome.
 
 Here is the included license text:
