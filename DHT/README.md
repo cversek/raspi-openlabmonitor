@@ -12,8 +12,8 @@ period of approximately 0.4s that it waits out before sending another request.
 The number of data request attempts is set by the parameter 
 ```DEFAULT_READ_ATTEMPTS = 10``` in ```dht22_class.py``` but can be overidden
 by the argument ```attempts``` in the method ```DHT22.read```.  Occasionally,
-all the attempts might fail, then an ```IOError``` is thrown which must be
-handled by the user's Python application.
+all the attempts might fail, then an ```IOError``` exception is thrown which 
+must be handled by the user's Python application.
 
 The C code driver component with its protocol timings is directly based off 
 of open source code from https://github.com/technion/lol_dht22 which compiles
