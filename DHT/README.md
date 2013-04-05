@@ -3,7 +3,7 @@ to access a C coded "shared object" driver library implementing the
 peculiar one wire communication protocol of [Aosong(Guangzhou) Electronics' 
 DHT22](http://www.adafruit.com/products/385) humidity and temperature sensors.
 Since the code is built for Raspberry Pi Linux ARM architecture, the timings
-implemented by the library may not always be gauranteed (i.e. is not "real-time")
+implemented by the library may not always be gauranteed (i.e., is not "real-time")
 so the data request protocol will fail frequently.  In order to migitate 
 the effect of this failure at the application level, the high level Python 
 driver retries the request if the previous data's checksum does not match.
