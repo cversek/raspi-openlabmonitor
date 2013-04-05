@@ -2,9 +2,21 @@ This Python package uses [ctypes](http://docs.python.org/2/library/ctypes.html)
 to access a C coded "shared object" driver library implementing the 
 peculiar one wire communication protocol of [Aosong(Guangzhou) Electronics' 
 DHT22](http://www.adafruit.com/products/385) humidity and temperature sensors.
-This C code driver component is directly based off of open source code from 
-https://github.com/technion/lol_dht22 which is very likely ultimately derived
-from "Adafruit's Raspberry-Pi Python Code Library" particularly 
+Since the code is built for Raspberry Pi Linux ARM architecture, the timings
+implemented by the library may not always be gauranteed (i.e. is not "real-time")
+so the data request protocol will fail frequently.  In order to migitate 
+the effect of this failure at the application level, the high level Python 
+driver retries the request if the previous data's checksum does not match.
+Also, if the sensor does not respond to the request, there is a refractory 
+period of approximately 0.4s which it waits out before sending another request.
+The number of data request attempts is set by the parameter 
+```DEFAULT_READ_ATTEMPTS = 10``` in ```dht22_class.py``` but can be overidden
+by the argument ```attempts``` in the method ```DHT22.read```.
+
+The C code driver component with its protocol timings is directly based off 
+of open source code from https://github.com/technion/lol_dht22 which is 
+very likely ultimately derived from "Adafruit's Raspberry-Pi Python Code Library" 
+particularly 
 [Adafruit_DHT_Driver](https://github.com/adafruit/Adafruit-Raspberry-Pi-Python-Code/tree/master/Adafruit_DHT_Driver).
 Go buy your DHT sensor from them, because they are awesome.
 
