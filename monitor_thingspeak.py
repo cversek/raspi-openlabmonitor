@@ -88,7 +88,7 @@ if __name__ == "__main__":
     try:
         while True:
             try:
-                H_room, T_room = dht.read() 
+                H_room, T_room = dht.read() #WARNING, this may occasionally throw an IOError
                 T_soil = therm.read_temperature()
                 print "---"
                 print "timestamp: %s" % time.time()
