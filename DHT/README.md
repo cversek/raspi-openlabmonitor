@@ -18,7 +18,7 @@ must be handled by the user's Python application.
 The C code driver component with its protocol timings is directly based off 
 of open source code from https://github.com/technion/lol_dht22 which compiles
 as a handy stand-alone commandline application.  This program may be more 
-than adequate to call and parse the output from Python using another process.  
+than adequate to call and parse the output from Python using another process.
 However, we wanted a little more control over the details of the implementation 
 and flexibility in the Python environment, so we went with the wrapper approach.
 Note that the afforementioned project very likely derives from 
