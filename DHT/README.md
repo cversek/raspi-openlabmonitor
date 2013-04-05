@@ -8,15 +8,21 @@ so the data request protocol will fail frequently.  In order to migitate
 the effect of this failure at the application level, the high level Python 
 driver retries the request if the previous data's checksum does not match.
 Also, if the sensor does not respond to the request, there is a refractory 
-period of approximately 0.4s which it waits out before sending another request.
+period of approximately 0.4s that it waits out before sending another request.
 The number of data request attempts is set by the parameter 
 ```DEFAULT_READ_ATTEMPTS = 10``` in ```dht22_class.py``` but can be overidden
-by the argument ```attempts``` in the method ```DHT22.read```.
+by the argument ```attempts``` in the method ```DHT22.read```.  Occasionally,
+all the attempts might fail, then an ```IOError``` is thrown which must be
+handled by the user's Python application.
 
 The C code driver component with its protocol timings is directly based off 
-of open source code from https://github.com/technion/lol_dht22 which is 
-very likely ultimately derived from "Adafruit's Raspberry-Pi Python Code Library" 
-particularly 
+of open source code from https://github.com/technion/lol_dht22 which compiles
+as a handy stand-alone commandline application.  This program may be more 
+than adequate to call and parse the output from Python using another process.  
+However, we wanted a little more control over the details of the implementation 
+and flexibility in the Python environment, so we went with the wrapper approach.
+Note that the afforementioned project very likely derives from 
+"Adafruit's Raspberry-Pi Python Code Library"  particularly 
 [Adafruit_DHT_Driver](https://github.com/adafruit/Adafruit-Raspberry-Pi-Python-Code/tree/master/Adafruit_DHT_Driver).
 Go buy your DHT sensor from them, because they are awesome.
 
