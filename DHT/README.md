@@ -1,10 +1,11 @@
 This Python package uses [ctypes](http://docs.python.org/2/library/ctypes.html) 
 to access a C coded "shared object" driver library implementing the 
-peculiar one wire communication protocol of Aosong(Guangzhou) Electronics' 
-DHT22 humidity and temperature sensors.  This C code driver component is 
-directly based off of open source code from Technion's https://github.com/technion/lol_dht22 
-which is very likely ultimately derived from "Adafruit's Raspberry-Pi Python Code Library"
-particularly [Adafruit_DHT_Driver](https://github.com/adafruit/Adafruit-Raspberry-Pi-Python-Code/tree/master/Adafruit_DHT_Driver).
+peculiar one wire communication protocol of [Aosong(Guangzhou) Electronics' 
+DHT22](http://www.adafruit.com/products/385) humidity and temperature sensors.
+This C code driver component is directly based off of open source code from 
+https://github.com/technion/lol_dht22 which is very likely ultimately derived
+from "Adafruit's Raspberry-Pi Python Code Library" particularly 
+[Adafruit_DHT_Driver](https://github.com/adafruit/Adafruit-Raspberry-Pi-Python-Code/tree/master/Adafruit_DHT_Driver).
 Go buy your DHT sensor from them, because they are awesome.
 
 The excellent [wiringPi](https://projects.drogon.net/raspberry-pi/wiringpi)
